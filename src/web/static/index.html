@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ReadFlow · Universal Book Acquisition & Delivery</title>
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+  <style>
+    :root {
+      --bg: #000000;
+      --card: #161617;
+      --card-hover: #1c1c1e;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.2);
+      --text: #f5f5f7;
+      --muted: #86868b;
+      --blue: #2997ff;
+      --blue-btn: #0071e3;
+      --green: #30d158;
+      --amber: #ff9f0a;
+      --purple: #bf5af2;
+      --red: #ff453a;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 8px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "PingFang SC", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(41, 151, 255, 0.15), transparent 70%);
+      background-attachment: fixed;
+    }
+
+    /* Glass Navbar */
+    .nav-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 52px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-logo {
+      font-size: 20px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 3px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      font-family: inherit;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--blue-btn);
+      border-color: transparent;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #0077ed;
+      box-shadow: 0 4px 14px rgba(0, 113, 227, 0.4);
+    }
+
+    /* Container */
+    .container {
+      max-width: 1120px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Active Task Banner */
+    .task-banner {
+      background: linear-gradient(135deg, rgba(41, 151, 255, 0.12), rgba(191, 90, 242, 0.08));
+      border: 1px solid rgba(41, 151, 255, 0.3);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      animation: pulseGlow 3s infinite ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { border-color: rgba(41, 151, 255, 0.3); box-shadow: 0 0 15px rgba(41, 151, 255, 0.05); }
+      50% { border-color: rgba(41, 151, 255, 0.6); box-shadow: 0 0 25px rgba(41, 151, 255, 0.2); }
+    }
+
+    .task-info { display: flex; align-items: center; gap: 14px; }
+    .task-spinner {
+      width: 22px;
+      height: 22px;
+      border: 2.5px solid rgba(41, 151, 255, 0.2);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .task-title { font-size: 14px; font-weight: 600; color: #fff; }
+    .task-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .bento-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 500px) {
+      .bento-grid { grid-template-columns: 1fr; }
+    }
+
+    .bento-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bento-card:hover {
+      background: var(--card-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin: 8px 0 4px;
+    }
+
+    .card-footer {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge.green { background: rgba(48, 209, 88, 0.15); color: var(--green); }
+    .badge.blue { background: rgba(41, 151, 255, 0.15); color: var(--blue); }
+    .badge.purple { background: rgba(191, 90, 242, 0.15); color: var(--purple); }
+    .badge.amber { background: rgba(255, 159, 10, 0.15); color: var(--amber); }
+
+    /* Section Panels */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Search & Table */
+    .search-box {
+      position: relative;
+      max-width: 280px;
+      width: 100%;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 7px 12px 7px 32px;
+      font-size: 13px;
+      color: #fff;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--blue); }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .book-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .book-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .book-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: middle;
+    }
+
+    .book-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .book-item-title { font-weight: 600; color: #fff; font-size: 14px; }
+    .book-item-author { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+    /* Form Grid */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 700px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .form-control {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: #fff;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-control:focus { border-color: var(--blue); }
+
+    /* Log Viewer Terminal */
+    .log-terminal {
+      background: #0d0d0e;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #8be9fd;
+      line-height: 1.6;
+      height: 380px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Modal / Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(30, 30, 32, 0.95);
+      border: 1px solid var(--border-hover);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 1000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Glass Bar -->
+  <header class="nav-bar">
+    <div class="brand">
+      <span class="brand-logo">📖</span>
+      <span>ReadFlow</span>
+      <span class="badge green" id="status-badge">● 活跃守护中</span>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab('dashboard')">实时概览</button>
+      <button class="nav-tab" onclick="switchTab('history')">图书账本</button>
+      <button class="nav-tab" onclick="switchTab('manual')">即时搜书</button>
+      <button class="nav-tab" onclick="switchTab('config')">系统配置</button>
+      <button class="nav-tab" onclick="switchTab('logs')">运行日志</button>
+    </div>
+
+    <div class="nav-actions">
+      <button class="btn btn-primary" onclick="triggerManualSync()">
+        <span>⚡ 立即巡检</span>
+      </button>
+      <a href="https://calibre.dobajia.cn" target="_blank" class="btn">
+        <span>书库直达 ↗</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Active Working Banner -->
+    <div class="task-banner hidden" id="active-task-banner">
+      <div class="task-info">
+        <div class="task-spinner"></div>
+        <div>
+          <div class="task-title" id="active-task-title">正在执行同步...</div>
+          <div class="task-sub" id="active-task-detail">正在连接外部源检索</div>
+        </div>
+      </div>
+      <span class="badge blue">进行中</span>
+    </div>
+
+    <!-- TAB 1: 实时概览 & 统计 -->
+    <div id="tab-dashboard" class="tab-pane">
+      <div class="bento-grid">
+        <div class="bento-card">
+          <div class="card-label">📚 累计交付图书</div>
+          <div class="card-value" id="val-delivered">--</div>
+          <div class="card-footer">
+            <span>豆瓣 / Goodreads 总计</span>
+            <span class="badge green" id="val-delivered-tag">100% 成功率</span>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div class="card-label">🏛️ 群晖 Calibre 藏书库</div>
+          <div class="card-value" id="val-calibre">23,945</div>
+          <div class="card-footer">
+            <span>在线元数据库资产</span>
+            <span class="badge purple">NAS 私有化</span>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div class="card-label">⚡ 检索渠道命中分布</div>
+          <div class="card-value" style="font-size: 20px; margin: 14px 0 10px;" id="val-sources">
+            Z-Lib: <span style="color:var(--blue)" id="val-zlib-cnt">-</span> | Calibre: <span style="color:var(--green)" id="val-calibre-cnt">-</span>
+          </div>
+          <div class="card-footer">
+            <span>PoW 自破解 + 私有库</span>
+            <span class="badge blue">瀑布流流转</span>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div class="card-label">⏱️ 下次巡检倒计时</div>
+          <div class="card-value" id="val-countdown">--s</div>
+          <div class="card-footer">
+            <span id="val-uptime">运行时间: 0小时</span>
+            <span class="badge amber" id="val-interval">每 600 秒</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 16px;"></div>
+
+      <!-- Recent Delivered Table Preview -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🔥 最近自动交付的书籍</span>
+          </div>
+          <button class="btn" onclick="switchTab('history')">查看全部账本 →</button>
+        </div>
+        <table class="book-table">
+          <thead>
+            <tr>
+              <th>书名与作者</th>
+              <th>捕获源</th>
+              <th>命中渠道</th>
+              <th>文件大小</th>
+              <th>交付状态</th>
+            </tr>
+          </thead>
+          <tbody id="recent-table-body">
+            <!-- Dynamic inject -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: 图书账本 -->
+    <div id="tab-history" class="tab-pane hidden">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📑 历史已处理图书清单</span>
+          </div>
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="search-input" placeholder="快捷检索书名、作者... (/)" oninput="filterHistory()">
+          </div>
+        </div>
+        <table class="book-table">
+          <thead>
+            <tr>
+              <th>书名 / 作者</th>
+              <th>意图来源</th>
+              <th>命中资源源</th>
+              <th>体积</th>
+              <th>目标邮箱</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody id="full-history-body">
+            <!-- Dynamic inject -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 3: 即时搜书 -->
+    <div id="tab-manual" class="tab-pane hidden">
+      <div class="panel" style="max-width: 680px; margin: 0 auto; width: 100%;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🔍 即时找书与全自动投递</span>
+          </div>
+        </div>
+        <p style="font-size: 13px; color: var(--muted); line-height: 1.6;">
+          无需等待豆瓣或 Goodreads 标记，在这里直接输入任意书名或 ISBN。系统将立即启动：<strong>Calibre 查重 → Z-Library 0.05s 算力破解与下载 → 群晖 NAS 归档 → 邮件推送到电纸书</strong>！
+        </p>
+
+        <form id="search-form" onsubmit="handleManualSearch(event)" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label">书名（必填，可包含副标题）</label>
+            <input type="text" id="manual-title" class="form-control" placeholder="例如：三体 或 The Witch" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">作者（选填，帮助精确检索）</label>
+            <input type="text" id="manual-author" class="form-control" placeholder="例如：刘慈欣 或 Freida McFadden">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ISBN 编码（选填，实现 100% 精准命中）</label>
+            <input type="text" id="manual-isbn" class="form-control" placeholder="例如：9787536692930">
+          </div>
+          <button type="submit" class="btn btn-primary" style="padding: 10px; justify-content: center;">
+            🚀 立即开始全网寻找并推送
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB 4: 系统配置 -->
+    <div id="tab-config" class="tab-pane hidden">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>⚙️ ReadFlow 生产配置管理</span>
+          </div>
+          <button class="btn btn-primary" onclick="saveConfig()">💾 保存并原子应用</button>
+        </div>
+
+        <form id="config-form" class="form-grid">
+          <div class="form-group">
+            <label class="form-label">🇨🇳 豆瓣用户 ID (DOUBAN_USER_ID)</label>
+            <input type="text" id="cfg-douban" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🌐 Goodreads 用户 ID (GOODREADS_USER_ID)</label>
+            <input type="text" id="cfg-goodreads" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">📬 交付目标邮箱 (TARGET_EMAIL)</label>
+            <input type="email" id="cfg-email" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">⏱️ 后台静默轮询间隔秒数</label>
+            <input type="number" id="cfg-interval" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🔐 Z-Library 认证 User ID (remix_userid)</label>
+            <input type="text" id="cfg-zlib-uid" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🔐 Z-Library 认证 User Key (remix_userkey)</label>
+            <input type="text" id="cfg-zlib-ukey" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🌐 Z-Library 服务域名</label>
+            <input type="text" id="cfg-zlib-domain" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🚀 本地代理地址 (HTTP_PROXY)</label>
+            <input type="text" id="cfg-proxy" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🏛️ 群晖 NAS SSH 主机名</label>
+            <input type="text" id="cfg-nas-host" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🏛️ 群晖 Calibre 数据库绝对路径</label>
+            <input type="text" id="cfg-nas-db" class="form-control">
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB 5: 运行日志 -->
+    <div id="tab-logs" class="tab-pane hidden">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>📜 实时守护进程控制台日志</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" onclick="fetchLogs()">🔄 刷新日志</button>
+            <button class="btn" onclick="restartService()">⚠️ 重启守护服务</button>
+          </div>
+        </div>
+        <div class="log-terminal" id="log-terminal">正在加载日志流...</div>
+      </div>
+    </div>
+
+  </main>
+
+  <div class="toast" id="toast">
+    <span id="toast-msg">操作成功</span>
+  </div>
+
+  <script>
+    let pollInterval = null;
+    let fullHistoryCache = [];
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      document.getElementById("toast-msg").innerText = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 3000);
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll(".tab-pane").forEach(el => el.classList.add("hidden"));
+      document.querySelectorAll(".nav-tab").forEach(el => el.classList.remove("active"));
+      
+      const targetPane = document.getElementById(`tab-${name}`);
+      if (targetPane) targetPane.classList.remove("hidden");
+      
+      const clickedBtn = Array.from(document.querySelectorAll(".nav-tab")).find(b => b.getAttribute("onclick").includes(name));
+      if (clickedBtn) clickedBtn.classList.add("active");
+
+      if (name === "history") fetchHistory();
+      if (name === "config") fetchConfig();
+      if (name === "logs") fetchLogs();
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch("/api/status");
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        document.getElementById("val-delivered").innerText = data.metrics.total_delivered || 0;
+        document.getElementById("val-calibre").innerText = data.metrics.calibre_total.toLocaleString();
+        document.getElementById("val-zlib-cnt").innerText = data.metrics.zlib_hits || 0;
+        document.getElementById("val-calibre-cnt").innerText = data.metrics.calibre_hits || 0;
+        
+        const mins = Math.floor(data.daemon.uptime_seconds / 60);
+        const hrs = Math.floor(mins / 60);
+        document.getElementById("val-uptime").innerText = `已常驻: ${hrs}小时${mins % 60}分`;
+        
+        const countdownEl = document.getElementById("val-countdown");
+        if (data.telemetry.is_syncing) {
+          countdownEl.innerText = "执行中";
+          countdownEl.style.color = "var(--blue)";
+        } else {
+          countdownEl.innerText = `${data.telemetry.countdown_seconds}s`;
+          countdownEl.style.color = "#fff";
+        }
+
+        // Active Banner
+        const banner = document.getElementById("active-task-banner");
+        if (data.telemetry.is_syncing || data.telemetry.current_book) {
+          banner.classList.remove("hidden");
+          document.getElementById("active-task-title").innerText = data.telemetry.current_book ? `正在处理《${data.telemetry.current_book}》` : "后台常规巡检中";
+          document.getElementById("active-task-detail").innerText = data.telemetry.current_step || "正在检索与匹配多源数据";
+        } else {
+          banner.classList.add("hidden");
+        }
+
+        // Render Recent Table
+        const recentBody = document.getElementById("recent-table-body");
+        if (data.recent_activity && data.recent_activity.length > 0) {
+          recentBody.innerHTML = data.recent_activity.map(b => `
+            <tr>
+              <td>
+                <div class="book-item-title">《${b.title}》</div>
+                <div class="book-item-author">${b.author || '未知作者'}</div>
+              </td>
+              <td><span class="badge ${b.source === 'douban' ? 'green' : 'blue'}">${b.source === 'douban' ? '豆瓣' : 'Goodreads'}</span></td>
+              <td><span class="badge purple">${b.matched_by || '自建书库'}</span></td>
+              <td>${b.size_mb ? b.size_mb + ' MB' : '-'}</td>
+              <td><span class="badge green">● 已邮件送达</span></td>
+            </tr>
+          `).join("");
+        } else {
+          recentBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px;">暂无最近交付记录</td></tr>`;
+        }
+
+      } catch (err) {
+        console.error("fetchStatus failed:", err);
+      }
+    }
+
+    async function fetchHistory() {
+      try {
+        const res = await fetch("/api/history");
+        const data = await res.json();
+        fullHistoryCache = data.history || [];
+        renderHistoryTable(fullHistoryCache);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function renderHistoryTable(items) {
+      const tbody = document.getElementById("full-history-body");
+      if (!items || items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px;">未检索到匹配书籍</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = items.map(b => `
+        <tr>
+          <td>
+            <div class="book-item-title">《${b.title}》</div>
+            <div class="book-item-author">${b.author || '未知'}</div>
+          </td>
+          <td><span class="badge ${b.source === 'douban' ? 'green' : 'blue'}">${b.source === 'douban' ? '豆瓣想读' : (b.source === 'goodreads' ? 'Goodreads' : '手动找书')}</span></td>
+          <td><span class="badge purple">${b.matched_by}</span></td>
+          <td>${b.size_mb ? b.size_mb + ' MB' : '-'}</td>
+          <td style="color:var(--muted);font-family:monospace;font-size:12px;">${b.recipient || '默认邮箱'}</td>
+          <td><span class="badge green">● 已交付</span></td>
+        </tr>
+      `).join("");
+    }
+
+    function filterHistory() {
+      const q = document.getElementById("search-input").value.trim().lower();
+      if (!q) {
+        renderHistoryTable(fullHistoryCache);
+        return;
+      }
+      const filtered = fullHistoryCache.filter(b => 
+        (b.title && b.title.toLowerCase().includes(q)) ||
+        (b.author && b.author.toLowerCase().includes(q)) ||
+        (b.matched_by && b.matched_by.toLowerCase().includes(q))
+      );
+      renderHistoryTable(filtered);
+    }
+
+    async function fetchConfig() {
+      try {
+        const res = await fetch("/api/config");
+        const cfg = await res.json();
+        document.getElementById("cfg-douban").value = cfg.DOUBAN_USER_ID || "";
+        document.getElementById("cfg-goodreads").value = cfg.GOODREADS_USER_ID || "";
+        document.getElementById("cfg-email").value = cfg.TARGET_EMAIL || "";
+        document.getElementById("cfg-interval").value = cfg.CHECK_INTERVAL_SECONDS || 600;
+        document.getElementById("cfg-zlib-uid").value = cfg.ZLIB_USER_ID || "";
+        document.getElementById("cfg-zlib-ukey").value = cfg.ZLIB_USER_KEY || "";
+        document.getElementById("cfg-zlib-domain").value = cfg.ZLIB_DOMAIN || "z-library.sk";
+        document.getElementById("cfg-proxy").value = cfg.HTTP_PROXY || "http://127.0.0.1:7897";
+        document.getElementById("cfg-nas-host").value = cfg.NAS_SSH_HOST || "nas";
+        document.getElementById("cfg-nas-db").value = cfg.NAS_CALIBRE_DB || "";
+      } catch (e) {
+        showToast("读取配置失败: " + e);
+      }
+    }
+
+    async function saveConfig() {
+      const payload = {
+        DOUBAN_USER_ID: document.getElementById("cfg-douban").value.trim(),
+        GOODREADS_USER_ID: document.getElementById("cfg-goodreads").value.trim(),
+        TARGET_EMAIL: document.getElementById("cfg-email").value.trim(),
+        CHECK_INTERVAL_SECONDS: parseInt(document.getElementById("cfg-interval").value) || 600,
+        ZLIB_USER_ID: document.getElementById("cfg-zlib-uid").value.trim(),
+        ZLIB_USER_KEY: document.getElementById("cfg-zlib-ukey").value.trim(),
+        ZLIB_DOMAIN: document.getElementById("cfg-zlib-domain").value.trim(),
+        HTTP_PROXY: document.getElementById("cfg-proxy").value.trim(),
+        NAS_SSH_HOST: document.getElementById("cfg-nas-host").value.trim(),
+        NAS_CALIBRE_DB: document.getElementById("cfg-nas-db").value.trim()
+      };
+
+      try {
+        const res = await fetch("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const out = await res.json();
+        showToast(out.message || "配置已安全更新！");
+      } catch (e) {
+        showToast("保存失败: " + e);
+      }
+    }
+
+    async function triggerManualSync() {
+      try {
+        const res = await fetch("/api/sync", { method: "POST" });
+        const out = await res.json();
+        showToast(out.message);
+        fetchStatus();
+      } catch (e) {
+        showToast("触发失败: " + e);
+      }
+    }
+
+    async function handleManualSearch(e) {
+      e.preventDefault();
+      const title = document.getElementById("manual-title").value.trim();
+      const author = document.getElementById("manual-author").value.trim();
+      const isbn = document.getElementById("manual-isbn").value.trim();
+      if (!title) return;
+
+      try {
+        const res = await fetch("/api/search_book", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, author, isbn })
+        });
+        const out = await res.json();
+        showToast(out.message);
+        document.getElementById("manual-title").value = "";
+        switchTab("dashboard");
+        fetchStatus();
+      } catch (err) {
+        showToast("提交失败: " + err);
+      }
+    }
+
+    async function fetchLogs() {
+      try {
+        const res = await fetch("/api/logs");
+        const data = await res.json();
+        const term = document.getElementById("log-terminal");
+        term.innerText = (data.logs || []).join("\n");
+        term.scrollTop = term.scrollHeight;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function restartService() {
+      if (!confirm("确定要重启 ReadFlow 守护进程吗？")) return;
+      try {
+        const res = await fetch("/api/restart", { method: "POST" });
+        const out = await res.json();
+        showToast(out.message || "服务重启中...");
+      } catch (e) {
+        showToast("重启失败: " + e);
+      }
+    }
+
+    // Keyboard shortcut '/' for search
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "/" && document.activeElement.tagName !== "INPUT") {
+        e.preventDefault();
+        switchTab("history");
+        setTimeout(() => document.getElementById("search-input").focus(), 50);
+      }
+    });
+
+    // Init Poll
+    fetchStatus();
+    pollInterval = setInterval(fetchStatus, 3000);
+  </script>
+</body>
+</html>
