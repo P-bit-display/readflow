@@ -67,6 +67,9 @@ async def handle_get_config(request):
     return web.json_response({
         "DOUBAN_USER_ID": os.getenv("DOUBAN_USER_ID", ""),
         "GOODREADS_USER_ID": os.getenv("GOODREADS_USER_ID", ""),
+        "BANGUMI_USER_ID": os.getenv("BANGUMI_USER_ID", ""),
+        "CUSTOM_RSS_URLS": os.getenv("CUSTOM_RSS_URLS", ""),
+        "WEBHOOK_TOKEN": os.getenv("WEBHOOK_TOKEN", ""),
         "CHECK_INTERVAL_SECONDS": int(os.getenv("CHECK_INTERVAL_SECONDS", "600")),
         "TARGET_EMAIL": os.getenv("TARGET_EMAIL", ""),
         "SMTP_SERVER": os.getenv("SMTP_SERVER", ""),
@@ -83,9 +86,12 @@ async def handle_get_config(request):
         "ZLIB_USER_ID": os.getenv("ZLIB_USER_ID", ""),
         "ZLIB_USER_KEY": os.getenv("ZLIB_USER_KEY", ""),
         "ZLIB_DOMAIN": os.getenv("ZLIB_DOMAIN", "z-library.sk"),
+        "ZLIB_BACKUP_DOMAINS": os.getenv("ZLIB_BACKUP_DOMAINS", "z-lib.gs,z-library.do,z-lib.is,singlelogin.re,z-lib.id,1lib.sk"),
         "HTTP_PROXY": os.getenv("HTTP_PROXY", ""),
         "ENABLE_ANNAS_ARCHIVE": os.getenv("ENABLE_ANNAS_ARCHIVE", "true").lower() == "true",
-        "ENABLE_LIBGEN": os.getenv("ENABLE_LIBGEN", "true").lower() == "true"
+        "ENABLE_LIBGEN": os.getenv("ENABLE_LIBGEN", "true").lower() == "true",
+        "ENABLE_STANDARD_EBOOKS": os.getenv("ENABLE_STANDARD_EBOOKS", "true").lower() == "true",
+        "ENABLE_GUTENBERG": os.getenv("ENABLE_GUTENBERG", "true").lower() == "true"
     })
 
 async def handle_update_config(request):
@@ -115,9 +121,12 @@ async def handle_update_config(request):
             "# ReadFlow 生产环境统一配置 (由 WebUI 自动管理保存)",
             "# ========================================================",
             "",
-            "# 1. 意图捕获源",
+            "# 1. 意图捕获源 (豆瓣 / Goodreads / Bangumi / 自定义 RSS / Webhook)",
             f"DOUBAN_USER_ID={current_env.get('DOUBAN_USER_ID', '')}",
             f"GOODREADS_USER_ID={current_env.get('GOODREADS_USER_ID', '')}",
+            f"BANGUMI_USER_ID={current_env.get('BANGUMI_USER_ID', '')}",
+            f"CUSTOM_RSS_URLS={current_env.get('CUSTOM_RSS_URLS', '')}",
+            f"WEBHOOK_TOKEN={current_env.get('WEBHOOK_TOKEN', '')}",
             f"CHECK_INTERVAL_SECONDS={current_env.get('CHECK_INTERVAL_SECONDS', '600')}",
             "",
             "# 2. 邮件分发与推送配置",
@@ -134,15 +143,18 @@ async def handle_update_config(request):
             f"NAS_INBOX_DIR={current_env.get('NAS_INBOX_DIR', '')}",
             f"NAS_PUSH_DIR={current_env.get('NAS_PUSH_DIR', '')}",
             "",
-            "# 4. 多书源检索凭据与网络",
+            "# 4. 多书源检索凭据与备份网络",
             f"ZLIB_EMAIL={current_env.get('ZLIB_EMAIL', '')}",
             f"ZLIB_PASSWORD={current_env.get('ZLIB_PASSWORD', '')}",
             f"ZLIB_USER_ID={current_env.get('ZLIB_USER_ID', '')}",
             f"ZLIB_USER_KEY={current_env.get('ZLIB_USER_KEY', '')}",
             f"ZLIB_DOMAIN={current_env.get('ZLIB_DOMAIN', 'z-library.sk')}",
+            f"ZLIB_BACKUP_DOMAINS={current_env.get('ZLIB_BACKUP_DOMAINS', 'z-lib.gs,z-library.do,z-lib.is,singlelogin.re,z-lib.id,1lib.sk')}",
             f"HTTP_PROXY={current_env.get('HTTP_PROXY', '')}",
             f"ENABLE_ANNAS_ARCHIVE={current_env.get('ENABLE_ANNAS_ARCHIVE', 'true')}",
             f"ENABLE_LIBGEN={current_env.get('ENABLE_LIBGEN', 'true')}",
+            f"ENABLE_STANDARD_EBOOKS={current_env.get('ENABLE_STANDARD_EBOOKS', 'true')}",
+            f"ENABLE_GUTENBERG={current_env.get('ENABLE_GUTENBERG', 'true')}",
             ""
         ]
 
@@ -177,6 +189,53 @@ async def handle_instant_search(request):
         loop = asyncio.get_event_loop()
         loop.run_in_executor(None, ReadFlowEngine.process_intent, intent)
         return web.json_response({"status": "started", "message": f"已提交即时找书任务《{title}》，后台正在检索并投递！"})
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500)
+
+async def handle_webhook_intent(request):
+    """通用 Webhook / iOS 快捷指令意图接收入口"""
+    try:
+        title = ""
+        author = None
+        isbn = None
+        token = ""
+
+        if request.method == "POST":
+            if request.content_type == "application/json":
+                data = await request.json()
+                title = data.get("title", "").strip()
+                author = data.get("author", "").strip() or None
+                isbn = data.get("isbn", "").strip() or None
+                token = data.get("token", "").strip()
+            else:
+                post_data = await request.post()
+                title = post_data.get("title", "").strip()
+                author = post_data.get("author", "").strip() or None
+                isbn = post_data.get("isbn", "").strip() or None
+                token = post_data.get("token", "").strip()
+        else:
+            title = request.query.get("title", "").strip()
+            author = request.query.get("author", "").strip() or None
+            isbn = request.query.get("isbn", "").strip() or None
+            token = request.query.get("token", "").strip()
+
+        # Token 校验 (若配置了 WEBHOOK_TOKEN)
+        expected_token = os.getenv("WEBHOOK_TOKEN", "").strip()
+        if expected_token and token != expected_token:
+            return web.json_response({"status": "error", "message": "鉴权失败：Token 无效或未提供！"}, status=401)
+
+        if not title:
+            return web.json_response({"status": "error", "message": "缺少必填参数: title (书名)"}, status=400)
+
+        intent = BookIntent(title=title, author=author, isbn=isbn, source="webhook")
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, ReadFlowEngine.process_intent, intent)
+        return web.json_response({
+            "status": "queued",
+            "message": f"已接收《{title}》即时阅读意图，后台已启动多源瀑布流检索与交付！",
+            "book": title,
+            "author": author
+        })
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 
@@ -219,6 +278,8 @@ def create_app():
     app.router.add_post("/api/config", handle_update_config)
     app.router.add_post("/api/sync", handle_trigger_sync)
     app.router.add_post("/api/search_book", handle_instant_search)
+    app.router.add_post("/api/webhook/intent", handle_webhook_intent)
+    app.router.add_get("/api/webhook/intent", handle_webhook_intent)
     app.router.add_get("/api/logs", handle_get_logs)
     app.router.add_post("/api/restart", handle_restart_service)
     

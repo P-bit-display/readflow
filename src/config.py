@@ -6,9 +6,12 @@ env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 class Config:
-    # 意图捕获源 (豆瓣 / Goodreads)
+    # 意图捕获源 (豆瓣 / Goodreads / Bangumi / 自定义 RSS / Webhook)
     DOUBAN_USER_ID = os.getenv("DOUBAN_USER_ID", "").strip()
     GOODREADS_USER_ID = os.getenv("GOODREADS_USER_ID", "").strip()
+    BANGUMI_USER_ID = os.getenv("BANGUMI_USER_ID", "").strip()
+    CUSTOM_RSS_URLS = [u.strip() for u in os.getenv("CUSTOM_RSS_URLS", "").split(",") if u.strip()]
+    WEBHOOK_TOKEN = os.getenv("WEBHOOK_TOKEN", "").strip()
     CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL_SECONDS", "600"))
 
     # 邮件分发目标与凭据
@@ -31,9 +34,18 @@ class Config:
     ZLIB_USER_ID = os.getenv("ZLIB_USER_ID", "").strip()
     ZLIB_USER_KEY = os.getenv("ZLIB_USER_KEY", "").strip()
     ZLIB_DOMAIN = os.getenv("ZLIB_DOMAIN", "z-library.sk").strip()
+    ZLIB_BACKUP_DOMAINS = [
+        d.strip() for d in os.getenv(
+            "ZLIB_BACKUP_DOMAINS",
+            "z-lib.gs,z-library.do,z-lib.is,singlelogin.re,z-lib.id,1lib.sk"
+        ).split(",") if d.strip()
+    ]
     HTTP_PROXY = os.getenv("HTTP_PROXY") or os.getenv("http_proxy") or ""
     ENABLE_ANNAS_ARCHIVE = os.getenv("ENABLE_ANNAS_ARCHIVE", "true").lower() == "true"
     ENABLE_LIBGEN = os.getenv("ENABLE_LIBGEN", "true").lower() == "true"
+    ENABLE_STANDARD_EBOOKS = os.getenv("ENABLE_STANDARD_EBOOKS", "true").lower() == "true"
+    ENABLE_GUTENBERG = os.getenv("ENABLE_GUTENBERG", "true").lower() == "true"
+    ENABLE_OPEN_LIBRARY = os.getenv("ENABLE_OPEN_LIBRARY", "true").lower() == "true"
 
     # 日志文件路径 (可选)
     LOG_FILE = os.getenv("LOG_FILE", "").strip()

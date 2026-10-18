@@ -634,8 +634,28 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">🌐 Z-Library 服务域名</label>
-            <input type="text" id="cfg-zlib-domain" class="form-control">
+            <label class="form-label">🌐 Z-Library 首选域名</label>
+            <input type="text" id="cfg-zlib-domain" class="form-control" placeholder="z-library.sk">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🔄 Z-Library 备份站点 (逗号分隔)</label>
+            <input type="text" id="cfg-zlib-backups" class="form-control" placeholder="z-lib.gs,z-library.do,z-lib.is,singlelogin.re,1lib.sk">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🌸 Bangumi 番组计划用户 ID (可选)</label>
+            <input type="text" id="cfg-bangumi" class="form-control" placeholder="如 sai 或数字 ID">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">📡 自定义图书 RSS 订阅源 (逗号分隔，可选)</label>
+            <input type="text" id="cfg-custom-rss" class="form-control" placeholder="如 RSSHub 微信读书书架 URL">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🔑 快捷指令 / Webhook 鉴权 Token (可选)</label>
+            <input type="text" id="cfg-webhook-token" class="form-control" placeholder="留空则不开启 Token 鉴权">
           </div>
 
           <div class="form-group">
@@ -653,6 +673,15 @@
             <input type="text" id="cfg-nas-db" class="form-control">
           </div>
         </form>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-top: 18px;">
+          <div style="font-weight: 600; font-size: 13px; color: var(--blue); margin-bottom: 6px;">📱 iOS 快捷指令 / 浏览器一键推书 Webhook 接口</div>
+          <div style="font-size: 12px; color: var(--muted); line-height: 1.6;">
+            在手机快捷指令或自动化脚本中向本机发送 POST 请求，即可即时触发检索与推送：<br/>
+            <code style="background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 0; color: #fff;">POST http://&lt;本机IP&gt;:8765/api/webhook/intent</code><br/>
+            请求参数 JSON：<code>{"title": "书名", "author": "作者 (可选)", "token": "鉴权Token (可选)"}</code>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -714,6 +743,9 @@
     function renderSourceBadge(source) {
       if (source === 'douban') return `<span class="badge green">豆瓣想读</span>`;
       if (source === 'goodreads') return `<span class="badge blue">Goodreads</span>`;
+      if (source === 'bangumi') return `<span class="badge purple">番组计划</span>`;
+      if (source === 'custom_rss') return `<span class="badge amber">自定义RSS</span>`;
+      if (source === 'webhook') return `<span class="badge blue">快捷指令</span>`;
       return `<span class="badge amber">手动找书</span>`;
     }
 
@@ -721,6 +753,12 @@
       if (!matched_by || matched_by === '未命中') {
         return `<span class="badge gray">未命中</span>`;
       }
+      if (matched_by.includes("Calibre")) return `<span class="badge blue">${matched_by}</span>`;
+      if (matched_by.includes("Z-Library")) return `<span class="badge purple">${matched_by}</span>`;
+      if (matched_by.includes("Standard Ebooks")) return `<span class="badge green">${matched_by}</span>`;
+      if (matched_by.includes("Gutenberg")) return `<span class="badge amber">${matched_by}</span>`;
+      if (matched_by.includes("Anna")) return `<span class="badge purple">${matched_by}</span>`;
+      if (matched_by.includes("Genesis") || matched_by.includes("Libgen")) return `<span class="badge blue">${matched_by}</span>`;
       return `<span class="badge purple">${matched_by}</span>`;
     }
 
@@ -834,10 +872,15 @@
         const cfg = await res.json();
         document.getElementById("cfg-douban").value = cfg.DOUBAN_USER_ID || "";
         document.getElementById("cfg-goodreads").value = cfg.GOODREADS_USER_ID || "";
+        document.getElementById("cfg-bangumi").value = cfg.BANGUMI_USER_ID || "";
+        document.getElementById("cfg-custom-rss").value = cfg.CUSTOM_RSS_URLS || "";
+        document.getElementById("cfg-webhook-token").value = cfg.WEBHOOK_TOKEN || "";
         document.getElementById("cfg-email").value = cfg.TARGET_EMAIL || "";
         document.getElementById("cfg-interval").value = cfg.CHECK_INTERVAL_SECONDS || 600;
         document.getElementById("cfg-zlib-uid").value = cfg.ZLIB_USER_ID || "";
         document.getElementById("cfg-zlib-ukey").value = cfg.ZLIB_USER_KEY || "";
+        document.getElementById("cfg-zlib-domain").value = cfg.ZLIB_DOMAIN || "z-library.sk";
+        document.getElementById("cfg-zlib-backups").value = cfg.ZLIB_BACKUP_DOMAINS || "";
         document.getElementById("cfg-proxy").value = cfg.HTTP_PROXY || "";
         document.getElementById("cfg-nas-host").value = cfg.NAS_SSH_HOST || "";
         document.getElementById("cfg-nas-db").value = cfg.NAS_CALIBRE_DB || "";
@@ -850,11 +893,15 @@
       const payload = {
         DOUBAN_USER_ID: document.getElementById("cfg-douban").value.trim(),
         GOODREADS_USER_ID: document.getElementById("cfg-goodreads").value.trim(),
+        BANGUMI_USER_ID: document.getElementById("cfg-bangumi").value.trim(),
+        CUSTOM_RSS_URLS: document.getElementById("cfg-custom-rss").value.trim(),
+        WEBHOOK_TOKEN: document.getElementById("cfg-webhook-token").value.trim(),
         TARGET_EMAIL: document.getElementById("cfg-email").value.trim(),
         CHECK_INTERVAL_SECONDS: parseInt(document.getElementById("cfg-interval").value) || 600,
         ZLIB_USER_ID: document.getElementById("cfg-zlib-uid").value.trim(),
         ZLIB_USER_KEY: document.getElementById("cfg-zlib-ukey").value.trim(),
         ZLIB_DOMAIN: document.getElementById("cfg-zlib-domain").value.trim(),
+        ZLIB_BACKUP_DOMAINS: document.getElementById("cfg-zlib-backups").value.trim(),
         HTTP_PROXY: document.getElementById("cfg-proxy").value.trim(),
         NAS_SSH_HOST: document.getElementById("cfg-nas-host").value.trim(),
         NAS_CALIBRE_DB: document.getElementById("cfg-nas-db").value.trim()

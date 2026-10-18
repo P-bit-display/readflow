@@ -112,11 +112,74 @@ def fetch_goodreads_wishes(user_id: str) -> List[BookIntent]:
 
     return intents
 
+def fetch_bangumi_wishes(user_id: str) -> List[BookIntent]:
+    """抓取 Bangumi (番组计划 bgm.tv) 用户想读与在读图书书单"""
+    if not user_id:
+        return []
+
+    intents: List[BookIntent] = []
+    seen: Set[str] = set()
+    proxy = Config.HTTP_PROXY
+    proxies = {"http": proxy, "https": proxy} if proxy else None
+    rss_url = f"https://bgm.tv/feed/user/{user_id}/interests"
+
+    try:
+        resp = requests.get(rss_url, headers=HEADERS, proxies=proxies, timeout=20)
+        if resp.status_code == 200:
+            feed = feedparser.parse(resp.text)
+            for entry in feed.entries:
+                raw_title = entry.get("title", "").strip()
+                # 匹配 '想读:书名' 或 '在读:书名'
+                for prefix in ["想读:", "在读:", "想读：", "在读："]:
+                    if raw_title.startswith(prefix):
+                        book_title = raw_title[len(prefix):].strip()
+                        if book_title and book_title.lower() not in seen:
+                            seen.add(book_title.lower())
+                            intents.append(BookIntent(title=book_title, source="bangumi"))
+                        break
+    except Exception as e:
+        print(f"[!] Bangumi 订阅流拉取异常: {e}")
+
+    return intents
+
+def fetch_custom_rss_wishes(urls: List[str]) -> List[BookIntent]:
+    """抓取自定义图书 RSS 订阅源 (如 RSSHub 微信读书书架、少数派书单等)"""
+    if not urls:
+        return []
+
+    intents: List[BookIntent] = []
+    seen: Set[str] = set()
+    proxy = Config.HTTP_PROXY
+    proxies = {"http": proxy, "https": proxy} if proxy else None
+
+    for url in urls:
+        if not url:
+            continue
+        try:
+            resp = requests.get(url, headers=HEADERS, proxies=proxies, timeout=20)
+            if resp.status_code == 200:
+                feed = feedparser.parse(resp.text)
+                for entry in feed.entries:
+                    raw_title = entry.get("title", "").strip()
+                    # 过滤常见前缀如 [微信读书]、书名号等
+                    clean = re.sub(r"^\[.*?\]\s*", "", raw_title).strip()
+                    if clean and clean.lower() not in seen:
+                        seen.add(clean.lower())
+                        intents.append(BookIntent(title=clean, author=entry.get("author"), source="custom_rss"))
+        except Exception as e:
+            print(f"[!] 自定义 RSS 源 ({url}) 拉取异常: {e}")
+
+    return intents
+
 def fetch_all_wishes() -> List[BookIntent]:
-    """聚合获取所有配置源的待读书目"""
+    """聚合获取所有配置源的待读书目 (豆瓣 / Goodreads / Bangumi / 自定义 RSS)"""
     all_wishes = []
     if Config.DOUBAN_USER_ID:
         all_wishes.extend(fetch_douban_wishes(Config.DOUBAN_USER_ID))
     if Config.GOODREADS_USER_ID:
         all_wishes.extend(fetch_goodreads_wishes(Config.GOODREADS_USER_ID))
+    if Config.BANGUMI_USER_ID:
+        all_wishes.extend(fetch_bangumi_wishes(Config.BANGUMI_USER_ID))
+    if Config.CUSTOM_RSS_URLS:
+        all_wishes.extend(fetch_custom_rss_wishes(Config.CUSTOM_RSS_URLS))
     return all_wishes

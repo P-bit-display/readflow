@@ -34,22 +34,27 @@
 
 ```mermaid
 flowchart TD
-    subgraph Intent["1. 意图捕获层 (Intent Capture)"]
+    subgraph Intent["1. 多源意图捕获层 (Intent Capture)"]
         D["🇨🇳 豆瓣 (Douban)<br/>个人「想读」书单"] 
         G["🌐 Goodreads<br/>个人「Want to Read」"]
+        B["🌸 Bangumi (番组计划)<br/>ACG/轻小说「想读」书单"]
+        R["📡 自定义图书 RSS<br/>微信读书/少数派/个人书单"]
+        K["📱 iOS 快捷指令 / Webhook<br/>手机一键分享即刻传书"]
         W["🖥️ WebUI 即时点播<br/>无需标记，即搜即投"]
     end
 
     subgraph Resolution["2. 实体消歧与规范化 (Entity Resolution)"]
-        E["提取图书标题 / 作者 / 语言偏好<br/>去重哈希指纹校验"]
+        E["提取图书标题 / 作者 / 语言偏好<br/>24h智能冷却与去重哈希校验"]
     end
 
     subgraph Waterfall["3. 聚合书源瀑布流 (Fulfillment Waterfall Chain)"]
         direction TB
         S0["Priority 0: 群晖 NAS / 本地 Calibre 藏书库<br/>(0ms 远程查重，直接搬运)"]
-        S1["Priority 1: Z-Library<br/>(内置 0.05s SHA-1 PoW 算力解算)"]
-        S2["Priority 2: Anna's Archive (安娜档案)<br/>(免登聚合元搜索备用源)"]
-        S3["Priority 3: Library Genesis (Libgen)<br/>(外文原版与学术专著兜底)"]
+        S1["Priority 1: Z-Library<br/>(多镜像备份站点自动故障转移 + 50ms PoW 解算)"]
+        S2["Priority 2: Standard Ebooks<br/>(高品质精排公版经典名著)"]
+        S3["Priority 3: Project Gutenberg (古腾堡)<br/>(世界公版数字图书图书馆)"]
+        S4["Priority 4: Anna's Archive (安娜档案)<br/>(全球多镜像元搜索备用源)"]
+        S5["Priority 5: Library Genesis (Libgen)<br/>(外文原版与学术专著多镜像兜底)"]
     end
 
     subgraph Delivery["4. 终端交付与资产入库 (Quiet Delivery)"]
@@ -59,16 +64,24 @@ flowchart TD
 
     D --> E
     G --> E
+    B --> E
+    R --> E
+    K --> E
     W --> E
+
     E --> S0
     S0 -- 未命中 --> S1
     S1 -- 未命中 --> S2
     S2 -- 未命中 --> S3
+    S3 -- 未命中 --> S4
+    S4 -- 未命中 --> S5
 
     S0 -- 命中已有原档 --> Delivery
     S1 -- 成功下载 EPUB --> Delivery
     S2 -- 成功下载 EPUB --> Delivery
     S3 -- 成功下载 EPUB --> Delivery
+    S4 -- 成功下载 EPUB --> Delivery
+    S5 -- 成功下载 EPUB --> Delivery
 
     Delivery --> NAS
     Delivery --> Mail
@@ -78,9 +91,13 @@ flowchart TD
 
 ## ✨ 核心特性
 
-- 📱 **多源意图捕获**：原生适配 **豆瓣想读** 与 **Goodreads Want-to-Read**，全自动定时差量轮询。
-- ⚡ **客户端 50ms SHA-1 挑战应答协议 (PoW)**：
-  * 内置针对 Z-Library 新版验证机制的纯 Python 快速 PoW（Proof-of-Work）解算器，保障检索通道畅通无阻，无需依赖 Telegram 轮询。
+- 📱 **6 大意图捕获来源**：
+  * 原生适配 **豆瓣想读**、**Goodreads Want-to-Read**、**Bangumi 番组计划**、**自定义图书 RSS 订阅流**（如微信读书书架）、**iOS 快捷指令/Webhook 接口** 以及 **WebUI 即时找书**。
+- 🔄 **Z-Library 多镜像站点故障自动转移**：
+  * 支持配置主域名与备份站点池（`z-lib.gs`、`z-library.do`、`z-lib.is`、`singlelogin.re` 等），主站遭遇限速、超时或 DNS 污染时，毫秒级无缝自动切换备份镜像。
+  * 内置针对新版反爬挑战的纯 Python 快速 SHA-1 PoW 算力解算器（50ms 极速通过）。
+- 📚 **全网 6 级瀑布流检索矩阵**：
+  * 私有 Calibre 库 ➔ Z-Lib (多镜像) ➔ Standard Ebooks ➔ Project Gutenberg ➔ Anna's Archive (多镜像) ➔ Library Genesis (多镜像)。公版名著、畅销通俗、专业冷门专著层层兜底。
 - 🏛️ **群晖 NAS / Calibre 深度闭环**：
   * 支持远程 SSH 直查群晖 NAS 上的 `metadata.db`，已有图书直接搬运至推送区，零网络带宽浪费。
   * 自动将新获取图书移入 Calibre-Web 监控的 `/05-inbox` 目录，全自动完成数字资产入库。
