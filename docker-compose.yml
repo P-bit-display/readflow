@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  douban2reader:
+    build: .
+    container_name: douban2reader
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./cache:/app/cache
+      # 如果有本地 Calibre 书库，可以映射进去直接查重
+      # - /path/to/calibre/library:/books:ro
+      # 如果有 Calibre-Web inbox 目录，可以映射进去实现自动入库
+      # - /path/to/calibre/inbox:/inbox
