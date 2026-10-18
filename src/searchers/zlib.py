@@ -32,10 +32,10 @@ class ZLibrarySearcher(BaseSearcher):
 
     def _get_proxies(self):
         proxy = Config.HTTP_PROXY
-        return {"http": proxy, "https": proxy}
+        return {"http": proxy, "https": proxy} if proxy else None
 
     def _solve_pow_challenge(self, html: str) -> bool:
-        """从 503 页面中提取 c 字符串并计算 SHA-1 PoW 破解防爬盾"""
+        """从 503 页面中提取 c 字符串并计算客户端 SHA-1 PoW 挑战应答"""
         try:
             m = re.search(r"['\"]([0-9A-Fa-f]{40})['\"]", html)
             if not m:

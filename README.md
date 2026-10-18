@@ -79,8 +79,8 @@ flowchart TD
 ## ✨ 核心特性
 
 - 📱 **多源意图捕获**：原生适配 **豆瓣想读** 与 **Goodreads Want-to-Read**，全自动定时差量轮询。
-- ⚡ **客户端 50ms SHA-1 PoW 算力破解**：
-  * 内置针对 Z-Library 新版反爬机制的纯 Python 快速 PoW（Proof-of-Work）解算器，彻底告别 403 阻断与 Telegram Bot 轮询瓶颈。
+- ⚡ **客户端 50ms SHA-1 挑战应答协议 (PoW)**：
+  * 内置针对 Z-Library 新版验证机制的纯 Python 快速 PoW（Proof-of-Work）解算器，保障检索通道畅通无阻，无需依赖 Telegram 轮询。
 - 🏛️ **群晖 NAS / Calibre 深度闭环**：
   * 支持远程 SSH 直查群晖 NAS 上的 `metadata.db`，已有图书直接搬运至推送区，零网络带宽浪费。
   * 自动将新获取图书移入 Calibre-Web 监控的 `/05-inbox` 目录，全自动完成数字资产入库。
@@ -239,14 +239,14 @@ flowchart TD
 
 | 参数项 | 说明 | 示例 / 默认值 | 必填 |
 | :--- | :--- | :--- | :---: |
-| **`DOUBAN_USER_ID`** | 豆瓣用户数字 ID 或个性域名后缀 | `151885595` | 选填 |
-| **`GOODREADS_USER_ID`** | Goodreads 用户数字 ID | `205766400` | 选填 |
+| **`DOUBAN_USER_ID`** | 豆瓣用户数字 ID 或个性域名后缀 | `your_douban_id` | 选填 |
+| **`GOODREADS_USER_ID`** | Goodreads 用户数字 ID | `your_goodreads_id` | 选填 |
 | **`CHECK_INTERVAL_SECONDS`**| 巡查想读动态的周期（秒） | `600` (10分钟) | 否 |
 | **`SMTP_SERVER`** | 发信 SMTP 服务器地址 | `smtp.gmail.com` 或 `smtp.163.com` | 是 |
 | **`SMTP_PORT`** | 发信 SMTP 端口 | `465` (SSL) 或 `587` (TLS) | 是 |
 | **`SMTP_USER`** | 发信邮箱账号 | `your_account@gmail.com` | 是 |
 | **`SMTP_PASSWORD`** | 邮箱授权码/应用专用密码（非登录密码） | `xxxx-xxxx-xxxx-xxxx` | 是 |
-| **`TARGET_EMAIL`** | 接收电子书的邮箱（电纸书/个人邮箱） | `placid.dang@163.com` | 是 |
+| **`TARGET_EMAIL`** | 接收电子书的邮箱（电纸书/个人邮箱） | `your_reader@163.com` | 是 |
 | **`NAS_SSH_HOST`** | 远程群晖 NAS 的 SSH 别名（如免密登录别名） | `nas` | 否 |
 | **`NAS_CALIBRE_ROOT`** | NAS 或本地 Calibre 书库物理根路径 | `/volume1/homes/user/Books/Calibre` | 否 |
 | **`NAS_CALIBRE_DB`** | Calibre `metadata.db` SQLite 数据库路径 | `/volume1/homes/user/Books/Calibre/metadata.db` | 否 |

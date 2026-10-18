@@ -25,8 +25,8 @@ class LibgenSearcher(BaseSearcher):
         return "Library Genesis"
 
     def _get_proxies(self):
-        proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy") or "http://127.0.0.1:7897"
-        return {"http": proxy, "https": proxy}
+        proxy = Config.HTTP_PROXY
+        return {"http": proxy, "https": proxy} if proxy else None
 
     def search_and_download(self, intent: BookIntent) -> Optional[str]:
         if not Config.ENABLE_LIBGEN:

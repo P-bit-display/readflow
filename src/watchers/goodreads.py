@@ -24,8 +24,8 @@ class GoodreadsWatcher(BaseWatcher):
 
     def _fetch_feed(self, url: str):
         try:
-            proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy") or "http://127.0.0.1:7897"
-            proxies = {"http": proxy, "https": proxy}
+            proxy = Config.HTTP_PROXY
+            proxies = {"http": proxy, "https": proxy} if proxy else None
             resp = requests.get(url, headers=HEADERS, proxies=proxies, timeout=25)
             if resp.status_code == 200:
                 return feedparser.parse(resp.text)

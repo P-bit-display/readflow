@@ -816,9 +816,8 @@
         document.getElementById("cfg-interval").value = cfg.CHECK_INTERVAL_SECONDS || 600;
         document.getElementById("cfg-zlib-uid").value = cfg.ZLIB_USER_ID || "";
         document.getElementById("cfg-zlib-ukey").value = cfg.ZLIB_USER_KEY || "";
-        document.getElementById("cfg-zlib-domain").value = cfg.ZLIB_DOMAIN || "z-library.sk";
-        document.getElementById("cfg-proxy").value = cfg.HTTP_PROXY || "http://127.0.0.1:7897";
-        document.getElementById("cfg-nas-host").value = cfg.NAS_SSH_HOST || "nas";
+        document.getElementById("cfg-proxy").value = cfg.HTTP_PROXY || "";
+        document.getElementById("cfg-nas-host").value = cfg.NAS_SSH_HOST || "";
         document.getElementById("cfg-nas-db").value = cfg.NAS_CALIBRE_DB || "";
       } catch (e) {
         showToast("读取配置失败: " + e);
