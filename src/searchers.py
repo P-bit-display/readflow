@@ -25,6 +25,7 @@ def search_calibre(intent: BookIntent) -> Optional[str]:
         return None
 
     def query_sql(title_query: str):
+        safe_title = title_query.replace("'", "''")
         # 优先级：1. 完全匹配 ➔ 2. 副标题前缀匹配 ➔ 3. 严格长度内包含
         sql = (
             f"SELECT b.id, b.title, b.path, d.name, d.format "
