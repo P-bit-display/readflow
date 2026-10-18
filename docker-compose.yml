@@ -1,16 +1,18 @@
 version: '3.8'
 
 services:
-  douban2reader:
+  readflow:
     build: .
-    container_name: douban2reader
+    container_name: readflow
     restart: unless-stopped
+    ports:
+      - "8765:8765"
     env_file:
       - .env
     volumes:
       - ./data:/app/data
       - ./cache:/app/cache
-      # 如果有本地 Calibre 书库，可以映射进去直接查重
+      # 如果有本地 Calibre 书库，可挂载用于 0 延迟查重
       # - /path/to/calibre/library:/books:ro
-      # 如果有 Calibre-Web inbox 目录，可以映射进去实现自动入库
+      # 如果有 Calibre-Web inbox 目录，可挂载实现自动入库
       # - /path/to/calibre/inbox:/inbox
