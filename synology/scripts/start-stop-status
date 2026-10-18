@@ -1,0 +1,86 @@
+#!/bin/sh
+PACKAGE="readflow"
+DNAME="ReadFlow"
+
+INSTALL_DIR="/var/packages/${PACKAGE}/target"
+PYTHON_BIN="${INSTALL_DIR}/venv/bin/python3"
+
+if [ ! -x "$PYTHON_BIN" ]; then
+    for p in /usr/local/bin/python3 /bin/python3 /usr/bin/python3; do
+        if [ -x "$p" ]; then
+            PYTHON_BIN="$p"
+            break
+        fi
+    done
+fi
+
+PID_FILE="${INSTALL_DIR}/readflow.pid"
+LOG_FILE="${INSTALL_DIR}/logs/readflow.log"
+
+start_daemon() {
+    if daemon_status; then
+        echo "${DNAME} is already running"
+        exit 0
+    fi
+
+    mkdir -p "${INSTALL_DIR}/logs"
+    mkdir -p "${INSTALL_DIR}/data"
+    mkdir -p "${INSTALL_DIR}/cache"
+
+    cd "${INSTALL_DIR}"
+    nohup "${PYTHON_BIN}" -u main.py >> "${LOG_FILE}" 2>&1 &
+    echo $! > "${PID_FILE}"
+    exit 0
+}
+
+stop_daemon() {
+    if [ -f "${PID_FILE}" ]; then
+        PID=$(cat "${PID_FILE}")
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+            kill "$PID"
+            for i in 1 2 3 4 5; do
+                if ! kill -0 "$PID" 2>/dev/null; then
+                    break
+                fi
+                sleep 1
+            done
+            if kill -0 "$PID" 2>/dev/null; then
+                kill -9 "$PID" 2>/dev/null
+            fi
+        fi
+        rm -f "${PID_FILE}"
+    fi
+    exit 0
+}
+
+daemon_status() {
+    if [ -f "${PID_FILE}" ]; then
+        PID=$(cat "${PID_FILE}")
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+case "$1" in
+    start)
+        start_daemon
+        ;;
+    stop)
+        stop_daemon
+        ;;
+    status)
+        if daemon_status; then
+            exit 0
+        else
+            exit 1
+        fi
+        ;;
+    log)
+        echo "${LOG_FILE}"
+        ;;
+    *)
+        exit 1
+        ;;
+esac

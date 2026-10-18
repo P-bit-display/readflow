@@ -112,13 +112,47 @@ flowchart TD
 ## 🚀 详细安装与部署指南
 
 ### 前置准备
-1. **Python 环境**：Python 3.10 及以上。
-2. **发信邮箱**：准备一个支持 SMTP 的邮箱（如 Gmail 应用专用密码、网易 163 授权码、QQ 邮箱授权码）。
+1. **Python 环境**：Python 3.10 及以上（若使用 Docker 或群晖套件，直接一键安装即可）。
+2. **发信邮箱**：准备一个支持 SMTP 的邮箱（如网易 163 授权码、QQ 邮箱授权码、Gmail 应用专用密码）。
 3. **电纸书收件邮箱**：汉王电纸书投递邮箱、Kindle 个人文档邮箱、或常用接收邮箱。
 
 ---
 
-### 方式一：Docker Compose 部署（NAS / 云服务器最推荐）
+### 🤖 方式一：AI 编程助手一键全自动安装（最快最省心，强烈推荐！）
+
+如果你正在使用 **Cursor、Claude Code、Windsurf、Cline、GitHub Copilot CLI 或任意支持终端执行的本地 AI Agent**，无需逐行敲命令！直接**复制下方这串提示词发给你的 AI 助手**，AI 将自动探测你的操作系统、拉取代码、构建虚拟环境、引导配置并启动守护进程：
+
+> 💡 完整独立提示词文档亦可查阅：[docs/AI_INSTALL_PROMPT.md](docs/AI_INSTALL_PROMPT.md)
+
+````markdown
+请帮我在当前机器上全自动安装并常驻运行 ReadFlow（https://github.com/P-bit-display/readflow.git）：
+1. 检测当前操作系统与环境（macOS / Linux / Windows / 群晖）。
+2. 克隆代码仓库并建立 Python 虚拟环境，安装依赖 `requirements.txt`。
+3. 询问并引导我配置 3 个核心参数（豆瓣数字 ID、电纸书接收邮箱、发信 SMTP 密码），原子化生成 `.env`。
+4. 根据当前系统配置自启动守护进程（macOS 使用 LaunchAgent，Linux 使用 systemd，或 Docker 容器）。
+5. 启动后检查 `http://localhost:8765/api/status` 确认服务存活，并向我展示 WebUI 链接。
+````
+
+---
+
+### 🏛️ 方式二：群晖 NAS 原生套件安装（SPK 一键安装包）
+
+专为群晖用户设计，**无需使用 Docker 或敲击 SSH 命令行**，支持 DSM 7.x 与 DSM 6.x：
+
+> 💡 详见群晖套件专题文档：[docs/SYNOLOGY_INSTALL.md](docs/SYNOLOGY_INSTALL.md)
+
+1. **准备 Python**：在群晖 **套件中心** 搜索安装官方 **Python 3** 套件。
+2. **安装套件**：
+   * 从 Releases 或 `dist/` 下载 `readflow_1.0.0_noarch.spk`。
+   * 打开群晖 **套件中心** ➔ 点击右上角 **「手动安装」** ➔ 上传 `readflow_1.0.0_noarch.spk`。
+   * 按照弹出的图形化安装向导，输入你的豆瓣 ID、Goodreads ID 与接收邮箱。
+3. **桌面图标直达**：
+   * 安装完成后，群晖 DSM 桌面与主菜单将自动生成 **ReadFlow** 专属图标。
+   * 点击图标直接打开 Web 控制中心（默认端口 `8765`），支持在套件中心直接启停与看日志。
+
+---
+
+### 🐳 方式三：Docker Compose 部署（NAS / 云服务器推荐）
 
 1. **克隆代码库**：
    ```bash
@@ -146,7 +180,7 @@ flowchart TD
 
 ---
 
-### 方式二：macOS 本地常驻服务（LaunchAgent 推荐）
+### 🍏 方式四：macOS 本地常驻服务（LaunchAgent 推荐）
 
 适合放在 Mac mini、MacBook 或家庭常开的 Mac 电脑上静默运行：
 
@@ -203,7 +237,7 @@ flowchart TD
 
 ---
 
-### 方式三：Linux systemd 守护服务部署
+### 🐧 方式五：Linux systemd 守护服务部署
 
 适合 Ubuntu / Debian / CentOS 主机：
 

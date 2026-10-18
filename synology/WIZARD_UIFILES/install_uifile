@@ -1,0 +1,51 @@
+[
+  {
+    "step_title": "基础账号与推送设置",
+    "items": [
+      {
+        "type": "textfield",
+        "desc": "豆瓣用户数字 ID (如 151885595)",
+        "sub_key": "wizard_douban_id"
+      },
+      {
+        "type": "textfield",
+        "desc": "Goodreads 用户数字 ID (如 205766400，可选)",
+        "sub_key": "wizard_goodreads_id"
+      },
+      {
+        "type": "textfield",
+        "desc": "电纸书接收邮箱 (如 汉王/Kindle/个人常用邮箱)",
+        "sub_key": "wizard_target_email"
+      }
+    ]
+  },
+  {
+    "step_title": "发信 SMTP 与私有书库配置 (可稍后在 WebUI 修改)",
+    "items": [
+      {
+        "type": "textfield",
+        "desc": "SMTP 服务器地址 (如 smtp.163.com 或 smtp.qq.com)",
+        "sub_key": "wizard_smtp_server",
+        "validator": { "allowBlank": true }
+      },
+      {
+        "type": "textfield",
+        "desc": "SMTP 发信账号 (如 your_email@163.com)",
+        "sub_key": "wizard_smtp_user",
+        "validator": { "allowBlank": true }
+      },
+      {
+        "type": "password",
+        "desc": "SMTP 客户端授权码 / 密码",
+        "sub_key": "wizard_smtp_password",
+        "validator": { "allowBlank": true }
+      },
+      {
+        "type": "textfield",
+        "desc": "群晖本地 Calibre 数据库 metadata.db 绝对路径 (可选)",
+        "sub_key": "wizard_calibre_db",
+        "validator": { "allowBlank": true }
+      }
+    ]
+  }
+]

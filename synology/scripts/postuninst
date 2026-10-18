@@ -1,0 +1,5 @@
+#!/bin/sh
+PACKAGE="readflow"
+INSTALL_DIR="/var/packages/${PACKAGE}/target"
+rm -f "${INSTALL_DIR}/readflow.pid"
+exit 0

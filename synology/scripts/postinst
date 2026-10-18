@@ -1,0 +1,59 @@
+#!/bin/sh
+PACKAGE="readflow"
+INSTALL_DIR="/var/packages/${PACKAGE}/target"
+
+mkdir -p "${INSTALL_DIR}/data"
+mkdir -p "${INSTALL_DIR}/cache"
+mkdir -p "${INSTALL_DIR}/logs"
+
+ENV_FILE="${INSTALL_DIR}/.env"
+if [ ! -f "${ENV_FILE}" ]; then
+    if [ -f "${INSTALL_DIR}/.env.example" ]; then
+        cp "${INSTALL_DIR}/.env.example" "${ENV_FILE}"
+    else
+        touch "${ENV_FILE}"
+    fi
+fi
+
+# 写入向导输入的变量
+if [ -n "$wizard_douban_id" ]; then
+    sed -i "s|^DOUBAN_USER_ID=.*|DOUBAN_USER_ID=${wizard_douban_id}|" "${ENV_FILE}" 2>/dev/null || true
+fi
+if [ -n "$wizard_goodreads_id" ]; then
+    sed -i "s|^GOODREADS_USER_ID=.*|GOODREADS_USER_ID=${wizard_goodreads_id}|" "${ENV_FILE}" 2>/dev/null || true
+fi
+if [ -n "$wizard_target_email" ]; then
+    sed -i "s|^TARGET_EMAIL=.*|TARGET_EMAIL=${wizard_target_email}|" "${ENV_FILE}" 2>/dev/null || true
+fi
+if [ -n "$wizard_smtp_server" ]; then
+    sed -i "s|^SMTP_SERVER=.*|SMTP_SERVER=${wizard_smtp_server}|" "${ENV_FILE}" 2>/dev/null || true
+fi
+if [ -n "$wizard_smtp_user" ]; then
+    sed -i "s|^SMTP_USER=.*|SMTP_USER=${wizard_smtp_user}|" "${ENV_FILE}" 2>/dev/null || true
+fi
+if [ -n "$wizard_smtp_password" ]; then
+    sed -i "s|^SMTP_PASSWORD=.*|SMTP_PASSWORD=${wizard_smtp_password}|" "${ENV_FILE}" 2>/dev/null || true
+fi
+if [ -n "$wizard_calibre_db" ]; then
+    sed -i "s|^NAS_CALIBRE_DB=.*|NAS_CALIBRE_DB=${wizard_calibre_db}|" "${ENV_FILE}" 2>/dev/null || true
+fi
+
+# 初始化 Python 虚拟环境与依赖
+PYTHON_SYS="/usr/local/bin/python3"
+[ ! -x "$PYTHON_SYS" ] && PYTHON_SYS="/bin/python3"
+[ ! -x "$PYTHON_SYS" ] && PYTHON_SYS="/usr/bin/python3"
+
+if [ -x "$PYTHON_SYS" ]; then
+    "$PYTHON_SYS" -m venv "${INSTALL_DIR}/venv" 2>/dev/null
+    if [ -f "${INSTALL_DIR}/venv/bin/pip" ]; then
+        "${INSTALL_DIR}/venv/bin/pip" install -r "${INSTALL_DIR}/requirements.txt" 2>/dev/null || true
+    else
+        "$PYTHON_SYS" -m pip install -r "${INSTALL_DIR}/requirements.txt" 2>/dev/null || true
+    fi
+fi
+
+# 权限适配 (DSM 7+ 使用 sc-readflow)
+chown -R sc-readflow:sc-readflow "${INSTALL_DIR}" 2>/dev/null || true
+chmod -R 755 "${INSTALL_DIR}" 2>/dev/null || true
+
+exit 0

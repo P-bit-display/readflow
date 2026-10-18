@@ -1,0 +1,11 @@
+{
+  "SYNO.SDS.ReadFlow": {
+    "type": "url",
+    "allUsers": true,
+    "title": "ReadFlow",
+    "desc": "Universal Zero-UI Book Acquisition & Delivery",
+    "icon": "images/icon_{0}.png",
+    "url": "http://{hostname}:8765",
+    "target": "_blank"
+  }
+}
