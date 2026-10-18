@@ -39,7 +39,9 @@ class ReadFlowEngine:
         # 1. 瀑布流多源检索
         epub_path, hit_source = cascade_search(intent)
 
-        if not epub_path or not Path(epub_path).exists():
+        # 校验文件有效性（兼容远程 NAS /volume1 绝对路径与本地文件系统）
+        is_valid = bool(epub_path and (epub_path.startswith("/volume1") or Path(epub_path).exists()))
+        if not is_valid:
             SystemState.set_active_task(intent.clean_title, "检索未命中", "全网与自建库均未找到可用 EPUB")
             print(f"[-] 所有检索源均未找到《{intent.clean_title}》")
             Database.record_book(
@@ -65,7 +67,9 @@ class ReadFlowEngine:
         mail_ok = send_email(epub_path, intent.clean_title, Config.TARGET_EMAIL)
 
         # 4. SQLite 持久化
-        file_size_mb = round(Path(epub_path).stat().st_size / (1024 * 1024), 2)
+        file_size_mb = 1.0
+        if epub_path and not epub_path.startswith("/volume1") and Path(epub_path).exists():
+            file_size_mb = round(Path(epub_path).stat().st_size / (1024 * 1024), 2)
         Database.record_book(
             title=intent.title,
             clean_title=intent.clean_title,

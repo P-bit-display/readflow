@@ -25,13 +25,18 @@ def search_calibre(intent: BookIntent) -> Optional[str]:
         return None
 
     def query_sql(title_query: str):
-        safe_title = title_query.replace("'", "''")
+        # 优先级：1. 完全匹配 ➔ 2. 副标题前缀匹配 ➔ 3. 严格长度内包含
         sql = (
             f"SELECT b.id, b.title, b.path, d.name, d.format "
             f"FROM books b "
             f"LEFT JOIN data d ON b.id = d.book AND UPPER(d.format) = 'EPUB' "
-            f"WHERE b.title LIKE '%{safe_title}%' "
-            f"ORDER BY (d.format IS NOT NULL) DESC, b.id DESC LIMIT 1;"
+            f"WHERE b.title = '{safe_title}' "
+            f"   OR b.title LIKE '{safe_title}:%' "
+            f"   OR b.title LIKE '{safe_title}：%' "
+            f"   OR b.title LIKE '{safe_title} (%' "
+            f"   OR b.title LIKE '{safe_title}（%' "
+            f"   OR (length(b.title) <= length('{safe_title}') + 4 AND b.title LIKE '%{safe_title}%') "
+            f"ORDER BY (b.title = '{safe_title}') DESC, (d.format IS NOT NULL) DESC, b.id DESC LIMIT 1;"
         )
         # 远程 NAS 模式
         if Config.NAS_SSH_HOST:
@@ -179,26 +184,34 @@ def search_zlib(intent: BookIntent) -> Optional[str]:
     part_file = Config.CACHE_DIR / f"{intent.clean_title}.epub.part"
 
     try:
-        with ZLibEngine.session.get(dl_url, cookies=ZLibEngine.cookies, proxies=ZLibEngine._get_proxies(), impersonate="chrome120", timeout=(15, 300), stream=True) as r:
-            if r.status_code != 200:
-                return None
-            first = True
-            with open(part_file, "wb") as f:
-                for chunk in r.iter_content(chunk_size=32768):
-                    if first:
-                        first = False
-                        if not chunk.startswith(b"PK\x03\x04"):  # 校验 EPUB Zip 幻数
-                            if part_file.exists():
-                                part_file.unlink()
-                            return None
-                    f.write(chunk)
+        r = ZLibEngine.session.get(
+            dl_url,
+            cookies=ZLibEngine.cookies,
+            proxies=ZLibEngine._get_proxies(),
+            impersonate="chrome120",
+            timeout=(15, 300),
+            stream=True
+        )
+        if r.status_code != 200:
+            return None
 
-            if part_file.exists() and part_file.stat().st_size > 1024:
-                if local_file.exists():
-                    local_file.unlink()
-                part_file.rename(local_file)
-                print(f"[+] [Z-Lib] 下载成功并落盘: {local_file}")
-                return str(local_file)
+        first = True
+        with open(part_file, "wb") as f:
+            for chunk in r.iter_content(chunk_size=32768):
+                if first:
+                    first = False
+                    if not chunk.startswith(b"PK\x03\x04"):  # 校验 EPUB Zip 幻数
+                        if part_file.exists():
+                            part_file.unlink()
+                        return None
+                f.write(chunk)
+
+        if part_file.exists() and part_file.stat().st_size > 1024:
+            if local_file.exists():
+                local_file.unlink()
+            part_file.rename(local_file)
+            print(f"[+] [Z-Lib] 下载成功并落盘: {local_file}")
+            return str(local_file)
     except Exception as e:
         print(f"[!] [Z-Lib] 下载中断: {e}")
         if part_file.exists():
