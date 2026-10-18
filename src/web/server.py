@@ -9,33 +9,25 @@ from aiohttp import web
 from dotenv import load_dotenv
 from src.config import Config
 from src.state import SystemState
-from src.pipeline import ReadFlowPipeline
+from src.db import Database
 from src.models import BookIntent
+from src.engine import ReadFlowEngine
 
 STATIC_DIR = Path(__file__).parent / "static"
 ENV_FILE = Path(__file__).parent.parent.parent / ".env"
 
-pipeline_instance = None
-
 def get_log_file() -> Path:
-    """智能定位运行日志路径（支持自定义环境变量、本地目录与 macOS launchd 日志）"""
+    """智能查找运行日志路径"""
     if Config.LOG_FILE and Path(Config.LOG_FILE).exists():
         return Path(Config.LOG_FILE)
-    candidates = [
+    for c in [
         Path(__file__).parent.parent.parent / "logs" / "readflow.log",
         Path.home() / ".hermes" / "logs" / "douban-sync.log",
         Path.home() / ".readflow" / "logs" / "readflow.log",
-    ]
-    for c in candidates:
+    ]:
         if c.exists():
             return c
-    return candidates[0]
-
-def get_pipeline():
-    global pipeline_instance
-    if pipeline_instance is None:
-        pipeline_instance = ReadFlowPipeline()
-    return pipeline_instance
+    return Path(__file__).parent.parent.parent / "logs" / "readflow.log"
 
 async def handle_index(request):
     index_file = STATIC_DIR / "index.html"
@@ -44,14 +36,9 @@ async def handle_index(request):
     return web.Response(text="ReadFlow WebUI: index.html not found", status=404)
 
 async def handle_get_status(request):
-    p = get_pipeline()
-    ledger = p.load_ledger()
     state = SystemState.to_dict()
-    
-    douban_cnt = sum(1 for b in ledger if b.get("source") == "douban")
-    goodreads_cnt = sum(1 for b in ledger if b.get("source") == "goodreads")
-    zlib_cnt = sum(1 for b in ledger if "z-library" in str(b.get("matched_by", "")).lower())
-    calibre_cnt = sum(1 for b in ledger if "calibre" in str(b.get("matched_by", "")).lower())
+    metrics = Database.get_metrics()
+    recent = Database.get_recent_activity(5)
 
     return web.json_response({
         "daemon": {
@@ -62,32 +49,22 @@ async def handle_get_status(request):
         },
         "telemetry": state,
         "metrics": {
-            "total_delivered": len(ledger),
+            "total_delivered": metrics["total_delivered"],
             "calibre_total": state["calibre_total"],
-            "douban_count": douban_cnt,
-            "goodreads_count": goodreads_cnt,
-            "zlib_hits": zlib_cnt,
-            "calibre_hits": calibre_cnt
+            "douban_count": metrics["douban_count"],
+            "goodreads_count": metrics["goodreads_count"],
+            "zlib_hits": metrics["zlib_hits"],
+            "calibre_hits": metrics["calibre_hits"]
         },
-        "recent_activity": ledger[:5]
+        "recent_activity": recent
     })
 
 async def handle_get_history(request):
-    q = request.query.get("q", "").strip().lower()
-    p = get_pipeline()
-    ledger = p.load_ledger()
-    if q:
-        ledger = [
-            b for b in ledger
-            if q in b.get("title", "").lower() 
-            or q in b.get("author", "").lower()
-            or q in b.get("matched_by", "").lower()
-        ]
-    return web.json_response({"history": ledger})
+    q = request.query.get("q", "").strip()
+    return web.json_response({"history": Database.get_ledger(query=q)})
 
 async def handle_get_config(request):
-    # 读取当前最新配置，安全脱敏
-    conf = {
+    return web.json_response({
         "DOUBAN_USER_ID": os.getenv("DOUBAN_USER_ID", ""),
         "GOODREADS_USER_ID": os.getenv("GOODREADS_USER_ID", ""),
         "CHECK_INTERVAL_SECONDS": int(os.getenv("CHECK_INTERVAL_SECONDS", "600")),
@@ -109,14 +86,11 @@ async def handle_get_config(request):
         "HTTP_PROXY": os.getenv("HTTP_PROXY", ""),
         "ENABLE_ANNAS_ARCHIVE": os.getenv("ENABLE_ANNAS_ARCHIVE", "true").lower() == "true",
         "ENABLE_LIBGEN": os.getenv("ENABLE_LIBGEN", "true").lower() == "true"
-    }
-    return web.json_response(conf)
+    })
 
 async def handle_update_config(request):
     try:
         data = await request.json()
-        
-        # 读取现有 .env 保留原有字段
         current_env = {}
         if ENV_FILE.exists():
             with open(ENV_FILE, "r", encoding="utf-8") as f:
@@ -126,7 +100,6 @@ async def handle_update_config(request):
                         k, v = line_str.split("=", 1)
                         current_env[k.strip()] = v.strip()
 
-        # 更新传入的字段
         for k, v in data.items():
             if k in ("ZLIB_PASSWORD_MASKED", "SMTP_PASSWORD_MASKED"):
                 continue
@@ -137,7 +110,6 @@ async def handle_update_config(request):
             else:
                 current_env[k] = str(v).strip()
 
-        # 重新生成规范的 .env 文本
         new_content = [
             "# ========================================================",
             "# ReadFlow 生产环境统一配置 (由 WebUI 自动管理保存)",
@@ -179,38 +151,15 @@ async def handle_update_config(request):
             f.write("\n".join(new_content))
         os.replace(tmp_env, ENV_FILE)
 
-        # 内存同步加载
         load_dotenv(dotenv_path=ENV_FILE, override=True)
-        Config.DOUBAN_USER_ID = os.getenv("DOUBAN_USER_ID", "").strip()
-        Config.GOODREADS_USER_ID = os.getenv("GOODREADS_USER_ID", "").strip()
-        Config.TARGET_EMAIL = os.getenv("TARGET_EMAIL", "").strip()
-        Config.SMTP_SERVER = os.getenv("SMTP_SERVER", "").strip()
-        Config.SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
-        Config.SMTP_USER = os.getenv("SMTP_USER", "").strip()
-        Config.SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
-        Config.NAS_SSH_HOST = os.getenv("NAS_SSH_HOST", "").strip()
-        Config.NAS_CALIBRE_ROOT = os.getenv("NAS_CALIBRE_ROOT", "").strip()
-        Config.NAS_CALIBRE_DB = os.getenv("NAS_CALIBRE_DB", "").strip()
-        Config.NAS_INBOX_DIR = os.getenv("NAS_INBOX_DIR", "").strip()
-        Config.NAS_PUSH_DIR = os.getenv("NAS_PUSH_DIR", "").strip()
-        Config.ZLIB_EMAIL = os.getenv("ZLIB_EMAIL", "").strip()
-        Config.ZLIB_PASSWORD = os.getenv("ZLIB_PASSWORD", "").strip()
-        Config.ZLIB_USER_ID = os.getenv("ZLIB_USER_ID", "").strip()
-        Config.ZLIB_USER_KEY = os.getenv("ZLIB_USER_KEY", "").strip()
-        Config.ZLIB_DOMAIN = os.getenv("ZLIB_DOMAIN", "z-library.sk").strip()
-        Config.HTTP_PROXY = os.getenv("HTTP_PROXY") or os.getenv("http_proxy") or ""
-        Config.ENABLE_ANNAS_ARCHIVE = os.getenv("ENABLE_ANNAS_ARCHIVE", "true").lower() == "true"
-        Config.ENABLE_LIBGEN = os.getenv("ENABLE_LIBGEN", "true").lower() == "true"
-
         return web.json_response({"status": "success", "message": "配置已安全更新并即时热生效！"})
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 
 async def handle_trigger_sync(request):
     try:
-        p = get_pipeline()
         loop = asyncio.get_event_loop()
-        loop.run_in_executor(None, p.run_once)
+        loop.run_in_executor(None, ReadFlowEngine.run_cycle)
         return web.json_response({"status": "triggered", "message": "已立即下发同步意图检查任务！"})
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
@@ -226,8 +175,7 @@ async def handle_instant_search(request):
 
         intent = BookIntent(title=title, author=author, isbn=isbn, source="manual")
         loop = asyncio.get_event_loop()
-        p = get_pipeline()
-        loop.run_in_executor(None, p.process_intent, intent)
+        loop.run_in_executor(None, ReadFlowEngine.process_intent, intent)
         return web.json_response({"status": "started", "message": f"已提交即时找书任务《{title}》，后台正在检索并投递！"})
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
@@ -238,8 +186,7 @@ async def handle_get_logs(request):
     if log_path.exists():
         try:
             with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
-                all_lines = f.readlines()
-                lines = [l.rstrip() for l in all_lines[-120:]]
+                lines = [l.rstrip() for l in f.readlines()[-120:]]
         except Exception as e:
             lines = [f"[!] 读取日志错误: {e}"]
     else:
@@ -249,20 +196,17 @@ async def handle_get_logs(request):
 async def handle_restart_service(request):
     try:
         service_name = os.getenv("LAUNCHD_SERVICE", "ai.hermes.douban-sync")
-        
         async def delayed_restart():
             await asyncio.sleep(1)
-            # macOS launchctl kickstart 重启
             if sys.platform == "darwin" and hasattr(os, "getuid"):
                 uid = os.getuid()
                 res = subprocess.run(f"launchctl kickstart -k gui/{uid}/{service_name}", shell=True)
                 if res.returncode == 0:
                     return
-            # 通用退出让守护管理器（Docker / systemd / LaunchAgent KeepAlive）自动拉起
             os._exit(0)
 
         asyncio.create_task(delayed_restart())
-        return web.json_response({"status": "restarting", "message": "服务重启信号已下发，后台将在 1 秒后自动重启重载！"})
+        return web.json_response({"status": "restarting", "message": "服务重启信号已下发，后台正在重新载入！"})
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500)
 

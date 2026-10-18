@@ -1,22 +1,10 @@
 #!/usr/bin/env python3
 import asyncio
-import time
 from aiohttp import web
 from src.config import Config
-from src.pipeline import ReadFlowPipeline
-import src.web.server as web_server
-
-async def background_sync_task(pipeline: ReadFlowPipeline):
-    loop = asyncio.get_running_loop()
-    while True:
-        try:
-            # run pipeline.run_once() in thread pool so it never blocks the async web event loop
-            await loop.run_in_executor(None, pipeline.run_once)
-        except Exception as e:
-            print(f"[!] 轮询发生未知异常: {e}")
-
-        interval = max(Config.CHECK_INTERVAL, 10)
-        await asyncio.sleep(interval)
+from src.db import Database
+from src.engine import ReadFlowEngine
+from src.web.server import create_app
 
 async def main():
     print("=" * 65)
@@ -29,19 +17,19 @@ async def main():
     print("• 控制面板: http://0.0.0.0:8765")
     print("=" * 65)
 
-    pipeline = ReadFlowPipeline()
-    web_server.pipeline_instance = pipeline
+    # 1. 初始化 SQLite 单文件数据库并完成旧数据无缝迁移
+    Database.init_db()
 
-    # Start aiohttp WebUI server
-    app = web_server.create_app()
+    # 2. 启动 aiohttp WebUI 仪表盘
+    app = create_app()
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", 8765)
     await site.start()
     print("✅ WebUI 仪表盘已就绪: http://0.0.0.0:8765")
 
-    # Start background recurring sync task
-    sync_task = asyncio.create_task(background_sync_task(pipeline))
+    # 3. 启动后台异步静默巡查任务
+    sync_task = asyncio.create_task(ReadFlowEngine.background_loop())
 
     try:
         await sync_task
