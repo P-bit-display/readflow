@@ -8,7 +8,6 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg?style=flat-square" alt="Python" />
   <img src="https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
   <img src="https://img.shields.io/badge/WebUI-Apple%20Dark-black.svg?style=flat-square" alt="WebUI" />
-  <a href="#-赞助与极客社区-sponsorship--community"><img src="https://img.shields.io/badge/Sponsor-💖-ff69b4.svg?style=flat-square" alt="Sponsor" /></a>
   <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome" />
 </p>
 
@@ -276,39 +275,6 @@ flowchart TD
 
 ### Q4: 下载的书籍大于 25MB 无法通过邮件附件发送怎么办？
 * **A**: ReadFlow 内置大附件防爆熔断保护。一旦体积超过 24MB，程序会自动截断邮件附件投递，避免邮件服务器退信；同时直接将该 EPUB 归档存入群晖 NAS 书库，并向你的邮箱发送一封友好通知，提醒你该书已入库。
-
----
-
-## 💖 赞助与极客社区 (Sponsorship & Community)
-
-如果 **ReadFlow** 帮你省去了繁琐的找书传书时间、极大改善了你的阅读体验，欢迎请作者喝杯咖啡 ☕️！你的每一份支持都是项目持续维护、对抗反爬与开发更多高级功能的动力源泉。
-
-### 🌟 赞助者专属权益
-- 🏷️ **永久留名**：所有赞助者的 GitHub ID / 昵称将永久收录于下方 **鸣谢荣誉榜（Backers Hall of Fame）**；
-- 🚀 **需求优先响应**：在 GitHub Issue 中提出的新特性或 Bug 将获得优先排期和技术解答；
-- 💬 **读者与极客交流圈**：扫码或添加好友进入专属交流群，一起交流 NAS、Calibre-Web、电纸书硬件折腾与个人知识库自动化。
-
-### ☕ 赞助通道
-
-| 渠道 | 入口 / 方式 | 说明 |
-| :--- | :--- | :--- |
-| **GitHub Sponsors** | [👉 点击前往 GitHub Sponsors 页面](https://github.com/sponsors/P-bit-display) | 支持国际信用卡 / PayPal |
-| **爱发电 (Afdian)** | [👉 前往作者爱发电主页](https://afdian.com) | 支持微信支付 / 支付宝 |
-| **微信 / 支付宝赞赏** | 见下方赞赏二维码 | 扫码请备注「**ReadFlow + 你的 GitHub ID**」 |
-
-<div align="center">
-  <p><b>微信赞赏码 / 交流入口</b></p>
-  <img src="docs/assets/sponsor_qr.png" width="220" alt="Sponsor QR" onerror="this.style.display='none'"/>
-  <p><i>（将你的赞赏码图片保存为 <code>docs/assets/sponsor_qr.png</code> 即可在此处显示）</i></p>
-</div>
-
-### 🏆 鸣谢荣誉榜 (Backers Hall of Fame)
-
-诚挚感谢以下支持 ReadFlow 持续成长的朋友们（按时间排序）：
-
-| 赞助者 | 平台 / 渠道 | 寄语 / 社区身份 |
-| :--- | :--- | :--- |
-| *敬请期待...* | GitHub Sponsors / 爱发电 / 微信 | 虚位以待，感谢第一位支持者！ |
 
 ---
 
