@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -12,10 +13,25 @@ class BookIntent:
 
     @property
     def clean_title(self) -> str:
-        """清洗书名，去除副标题符号与书名号"""
+        """清洗书名，去除特殊书名号与文件名非法字符"""
         t = self.title.replace("《", "").replace("》", "").strip()
-        # 去除常见副标题破折号之后的部分（用于提升搜索宽容度）
+        t = re.sub(r'[\\/*?:"<>|]', "", t).strip()
         return t
+
+    @property
+    def base_title(self) -> str:
+        """提取核心主书名（去除系列后缀、副标题、括号说明），用于高鲁棒性查重与模糊搜索"""
+        t = self.clean_title
+        # 去除 (The Empyrean, #3.5) 或 （原书第3版） 等括号附加信息
+        t = re.sub(r'[\(（].*?[\)）]', '', t).strip()
+        # 去除常见副标题分隔符
+        for sep in [':', '：', '——', ' - ']:
+            if sep in t:
+                parts = t.split(sep)
+                if parts[0].strip():
+                    t = parts[0].strip()
+                    break
+        return t if t else self.clean_title
 
     def __str__(self):
         auth_info = f" - {self.author}" if self.author else ""
