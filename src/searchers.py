@@ -26,7 +26,7 @@ def search_calibre(intent: BookIntent) -> Optional[str]:
 
     def query_sql(title_query: str):
         safe_title = title_query.replace("'", "''")
-        # 优先级：1. 完全匹配 ➔ 2. 副标题前缀匹配 ➔ 3. 严格长度内包含
+        # 严格精确匹配：1. 全字完全匹配 ➔ 2. 副标题与版本前缀匹配
         sql = (
             f"SELECT b.id, b.title, b.path, d.name, d.format "
             f"FROM books b "
@@ -36,7 +36,8 @@ def search_calibre(intent: BookIntent) -> Optional[str]:
             f"   OR b.title LIKE '{safe_title}：%' "
             f"   OR b.title LIKE '{safe_title} (%' "
             f"   OR b.title LIKE '{safe_title}（%' "
-            f"   OR (length(b.title) <= length('{safe_title}') + 4 AND b.title LIKE '%{safe_title}%') "
+            f"   OR b.title LIKE '{safe_title}——%' "
+            f"   OR b.title LIKE '{safe_title} - %' "
             f"ORDER BY (b.title = '{safe_title}') DESC, (d.format IS NOT NULL) DESC, b.id DESC LIMIT 1;"
         )
         # 远程 NAS 模式
@@ -190,7 +191,7 @@ def search_zlib(intent: BookIntent) -> Optional[str]:
             cookies=ZLibEngine.cookies,
             proxies=ZLibEngine._get_proxies(),
             impersonate="chrome120",
-            timeout=(15, 300),
+            timeout=(45, 300),
             stream=True
         )
         if r.status_code != 200:
