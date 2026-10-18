@@ -105,17 +105,19 @@ class Database:
 
     @classmethod
     def is_seen(cls, clean_title: str, base_title: Optional[str] = None) -> bool:
-        """双向判断书籍是否已经在库中记录过"""
+        """双向判断书籍是否已成功处理，或在冷却期内（避免频繁重试未命中图书，24h后可自动重试）"""
+        cool_off_window = int(time.time()) - 86400
         with cls.get_connection() as conn:
             cur = conn.cursor()
-            if base_title and base_title != clean_title:
-                cur.execute("""
-                    SELECT 1 FROM books 
-                    WHERE clean_title = ? OR base_title = ? OR title = ? OR title = ?
-                    LIMIT 1;
-                """, (clean_title, base_title, clean_title, base_title))
-            else:
-                cur.execute("SELECT 1 FROM books WHERE clean_title = ? OR title = ? LIMIT 1;", (clean_title, clean_title))
+            query_cond = "(clean_title = ? OR base_title = ? OR title = ? OR title = ?)" if (base_title and base_title != clean_title) else "(clean_title = ? OR title = ?)"
+            params = (clean_title, base_title, clean_title, base_title, cool_off_window) if (base_title and base_title != clean_title) else (clean_title, clean_title, cool_off_window)
+            
+            cur.execute(f"""
+                SELECT 1 FROM books 
+                WHERE {query_cond}
+                  AND (status IN ('delivered', 'ingested_only') OR (status = 'failed' AND timestamp > ?))
+                LIMIT 1;
+            """, params)
             return cur.fetchone() is not None
 
     @classmethod

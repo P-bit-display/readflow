@@ -56,6 +56,9 @@ class ReadFlowEngine:
                 size_mb=0.0,
                 recipient=Config.TARGET_EMAIL
             )
+            time.sleep(3)
+            if not SystemState.is_syncing:
+                SystemState.clear_active_task()
             return False
 
         # 2. 资产入库
@@ -84,6 +87,9 @@ class ReadFlowEngine:
         )
 
         SystemState.set_active_task(intent.clean_title, "交付完成", f"已成功推送到 {Config.TARGET_EMAIL}")
+        time.sleep(3)
+        if not SystemState.is_syncing:
+            SystemState.clear_active_task()
         return True
 
     @classmethod

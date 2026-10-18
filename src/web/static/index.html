@@ -254,6 +254,8 @@
     .badge.blue { background: rgba(41, 151, 255, 0.15); color: var(--blue); }
     .badge.purple { background: rgba(191, 90, 242, 0.15); color: var(--purple); }
     .badge.amber { background: rgba(255, 159, 10, 0.15); color: var(--amber); }
+    .badge.red { background: rgba(255, 69, 58, 0.15); color: var(--red); }
+    .badge.gray { background: rgba(255, 255, 255, 0.08); color: var(--muted); }
 
     /* Section Panels */
     .panel {
@@ -702,6 +704,26 @@
       if (name === "logs") fetchLogs();
     }
 
+    function renderStatusBadge(status) {
+      if (status === 'delivered') return `<span class="badge green">● 已送达</span>`;
+      if (status === 'failed') return `<span class="badge red">✕ 未命中</span>`;
+      if (status === 'ingested_only') return `<span class="badge blue">● 仅入库</span>`;
+      return `<span class="badge gray">● ${status || '未知'}</span>`;
+    }
+
+    function renderSourceBadge(source) {
+      if (source === 'douban') return `<span class="badge green">豆瓣想读</span>`;
+      if (source === 'goodreads') return `<span class="badge blue">Goodreads</span>`;
+      return `<span class="badge amber">手动找书</span>`;
+    }
+
+    function renderMatchedBadge(matched_by) {
+      if (!matched_by || matched_by === '未命中') {
+        return `<span class="badge gray">未命中</span>`;
+      }
+      return `<span class="badge purple">${matched_by}</span>`;
+    }
+
     async function fetchStatus() {
       try {
         const res = await fetch("/api/status");
@@ -745,10 +767,10 @@
                 <div class="book-item-title">《${b.title}》</div>
                 <div class="book-item-author">${b.author || '未知作者'}</div>
               </td>
-              <td><span class="badge ${b.source === 'douban' ? 'green' : 'blue'}">${b.source === 'douban' ? '豆瓣' : 'Goodreads'}</span></td>
-              <td><span class="badge purple">${b.matched_by || '自建书库'}</span></td>
+              <td>${renderSourceBadge(b.source)}</td>
+              <td>${renderMatchedBadge(b.matched_by)}</td>
               <td>${b.size_mb ? b.size_mb + ' MB' : '-'}</td>
-              <td><span class="badge green">● 已邮件送达</span></td>
+              <td>${renderStatusBadge(b.status)}</td>
             </tr>
           `).join("");
         } else {
@@ -781,19 +803,19 @@
         <tr>
           <td>
             <div class="book-item-title">《${b.title}》</div>
-            <div class="book-item-author">${b.author || '未知'}</div>
+            <div class="book-item-author">${b.author || '未知作者'}</div>
           </td>
-          <td><span class="badge ${b.source === 'douban' ? 'green' : 'blue'}">${b.source === 'douban' ? '豆瓣想读' : (b.source === 'goodreads' ? 'Goodreads' : '手动找书')}</span></td>
-          <td><span class="badge purple">${b.matched_by}</span></td>
+          <td>${renderSourceBadge(b.source)}</td>
+          <td>${renderMatchedBadge(b.matched_by)}</td>
           <td>${b.size_mb ? b.size_mb + ' MB' : '-'}</td>
           <td style="color:var(--muted);font-family:monospace;font-size:12px;">${b.recipient || '默认邮箱'}</td>
-          <td><span class="badge green">● 已交付</span></td>
+          <td>${renderStatusBadge(b.status)}</td>
         </tr>
       `).join("");
     }
 
     function filterHistory() {
-      const q = document.getElementById("search-input").value.trim().lower();
+      const q = document.getElementById("search-input").value.trim().toLowerCase();
       if (!q) {
         renderHistoryTable(fullHistoryCache);
         return;
