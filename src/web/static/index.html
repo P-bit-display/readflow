@@ -846,7 +846,7 @@
           <td>${renderSourceBadge(b.source)}</td>
           <td>${renderMatchedBadge(b.matched_by)}</td>
           <td>${b.size_mb ? b.size_mb + ' MB' : '-'}</td>
-          <td style="color:var(--muted);font-family:monospace;font-size:12px;">${b.recipient || '默认邮箱'}</td>
+          <td style="color:var(--muted);font-family:monospace;font-size:12px;">${window.location.search.includes("demo=1") ? "reader@kindle.cn" : (b.recipient || '默认邮箱')}</td>
           <td>${renderStatusBadge(b.status)}</td>
         </tr>
       `).join("");
@@ -884,6 +884,15 @@
         document.getElementById("cfg-proxy").value = cfg.HTTP_PROXY || "";
         document.getElementById("cfg-nas-host").value = cfg.NAS_SSH_HOST || "";
         document.getElementById("cfg-nas-db").value = cfg.NAS_CALIBRE_DB || "";
+
+        // Privacy sanitization for demo/screenshots
+        if (window.location.search.includes("demo=1")) {
+          document.getElementById("cfg-email").value = "reader@kindle.cn";
+          document.getElementById("cfg-zlib-uid").value = "1136****";
+          document.getElementById("cfg-zlib-ukey").value = (cfg.ZLIB_USER_KEY || "a7835d4e").substring(0, 8) + "****************";
+          document.getElementById("cfg-douban").value = "15188***";
+          document.getElementById("cfg-goodreads").value = "20576***";
+        }
       } catch (e) {
         showToast("读取配置失败: " + e);
       }
@@ -987,6 +996,10 @@
     });
 
     // Init Poll
+    const initialTab = window.location.hash.replace("#", "");
+    if (["dashboard", "history", "manual", "config", "logs"].includes(initialTab)) {
+      switchTab(initialTab);
+    }
     fetchStatus();
     pollInterval = setInterval(fetchStatus, 3000);
   </script>

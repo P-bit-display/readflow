@@ -11,6 +11,10 @@
   <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome" />
 </p>
 
+<p align="center">
+  <img src="docs/images/dashboard.png" alt="ReadFlow WebUI Bento Dashboard" width="95%" />
+</p>
+
 ---
 
 ## 💡 为什么需要 ReadFlow？
@@ -101,6 +105,9 @@ flowchart TD
 - 🏛️ **群晖 NAS / Calibre 深度闭环**：
   * 支持远程 SSH 直查群晖 NAS 上的 `metadata.db`，已有图书直接搬运至推送区，零网络带宽浪费。
   * 自动将新获取图书移入 Calibre-Web 监控的 `/05-inbox` 目录，全自动完成数字资产入库。
+- 🗂️ **零额外空间中文分类书架（Hardlink Mirror）**：
+  * 内置 [`tools/sync_chinese_shelf.py`](tools/sync_chinese_shelf.py) 工具，利用 Linux / 群晖 Btrfs 底层硬链接（`os.link`）瞬间生成纯正中文「作者/书名.epub」目录树（如 `/Books/中文书架/`）。
+  * **0 风险**，完全不破坏 Calibre 内部数据库与拼音目录映射；**0 额外磁盘占用**，便于在 Mac 访达（SMB）、手机网盘或群晖 File Station 中直接浏览阅读。
 - 📬 **国内邮箱附件 100% 兼容（告别 noname）**：
   * 严格遵循 **RFC 2047 MIME Base64 规范** 对中文附件名进行双重编码，完美兼容网易 163、QQ 邮箱、Gmail、Outlook 等，在汉王、Kindle、文石设备上直接显示完整中文书名并自动上架。
 - 📦 **大附件智能防爆降级**：
@@ -118,11 +125,40 @@ flowchart TD
 
 运行服务后，访问 `http://localhost:8765` 即可打开控制中心：
 
-* **实时概览**：动态呼吸脉冲、正在巡检/解密/投递进度、多渠道命中占比统计。
-* **图书账本**：完整记录每本图书的来源、格式、体积、命中渠道及收件邮箱。
-* **即时找书**：一键输入书名与作者，后台自动走瀑布流搜寻并投递。
-* **配置管理**：豆瓣、Goodreads、邮箱、群晖 NAS、Z-Lib 凭据可视化编辑，即时热生效。
-* **运行日志**：黑底原生暗黑终端风格，最近执行明细实时排查。
+### 1. 实时概览（Apple Bento Grid 仪表盘）
+动态呼吸灯脉冲、当前正在巡检/解密/投递进度、私有藏书量与多渠道命中占比统计。
+
+<p align="center">
+  <img src="docs/images/dashboard.png" alt="ReadFlow 实时概览仪表盘" width="92%" />
+</p>
+
+### 2. 图书账本（全量交付记录与即时过滤）
+完整记录每本图书的来源渠道（豆瓣想读、Goodreads、快捷指令、番组计划）、命中资源、文件体积、目标邮箱及交付状态。支持按键 `/` 瞬时过滤搜索。
+
+<p align="center">
+  <img src="docs/images/history.png" alt="ReadFlow 历史账本" width="92%" />
+</p>
+
+### 3. 即时找书（即搜即投零等待）
+临时想看好书无需打开豆瓣打标记，在控制中心输入书名或作者，后台自动走 6 级瀑布流检索并秒级推送到电纸书。
+
+<p align="center">
+  <img src="docs/images/manual_search.png" alt="ReadFlow 即时搜书" width="92%" />
+</p>
+
+### 4. 生产配置管理（全字段可视化与热生效）
+可视化编辑豆瓣 ID、Goodreads ID、邮箱 SMTP、Z-Library 主域名与多备份站点池、群晖 NAS 路径等，配置原子化落盘并即时热重载。
+
+<p align="center">
+  <img src="docs/images/config.png" alt="ReadFlow 系统配置" width="92%" />
+</p>
+
+### 5. 实时运行日志（原生暗黑终端）
+黑底终端极简设计，实时排查抓取、解密、下载与推送各环节底层输出。
+
+<p align="center">
+  <img src="docs/images/logs.png" alt="ReadFlow 运行日志" width="92%" />
+</p>
 
 ---
 
